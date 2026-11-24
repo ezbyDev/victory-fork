@@ -406,7 +406,7 @@ pub(crate) fn making() -> u64 {
 static DROPS: Mutex<Option<HashMap<String, u64>>> = Mutex::new(None);
 
 /// Shader hashes as printed in the pipeline diagnostics.
-#[cfg(all(windows, feature = "diagnostics"))]
+#[cfg(windows)]
 fn parse_skip_hashes(value: &str) -> Vec<String> {
     value
         .split(',')
@@ -426,7 +426,13 @@ fn parse_skip_hashes(value: &str) -> Vec<String> {
         .collect()
 }
 
-#[cfg(all(windows, feature = "diagnostics"))]
+/// The shader of `shaders` (a pipeline's) that `VICTORY_SKIP_PIPELINES` names, if any: its
+/// draws and dispatches are not run. Read in release builds too, empty
+/// unless set. On AMD's Windows drivers the host compile of compute shader
+/// 39f0e9aeb156a61c never finishes, and the driver's memory grows by about
+/// 240 MB a second while it waits for it: AMD users may want to skip it
+/// (`VICTORY_SKIP_PIPELINES=39f0e9aeb156a61c`).
+#[cfg(windows)]
 fn skipped_shader(shaders: &[Arc<Shader>]) -> Option<&str> {
     static HASHES: OnceLock<Vec<String>> = OnceLock::new();
     let hashes = HASHES.get_or_init(|| {
@@ -442,7 +448,7 @@ fn skipped_shader(shaders: &[Arc<Shader>]) -> Option<&str> {
         .map(|shader| shader.hash.as_str())
 }
 
-#[cfg(all(windows, feature = "diagnostics"))]
+#[cfg(windows)]
 pub(crate) fn is_skipped(this: This) -> bool {
     !this.is_null() && skipped_shader(&pipeline(this).shaders).is_some()
 }
@@ -724,7 +730,7 @@ pub fn save_pipeline_cache() {
 
 #[cfg(test)]
 mod tests {
-    #[cfg(all(windows, feature = "diagnostics"))]
+    #[cfg(windows)]
     #[test]
     fn skip_hashes_accepts_full_hashes_only() {
         assert!(super::parse_skip_hashes(" , ").is_empty());
